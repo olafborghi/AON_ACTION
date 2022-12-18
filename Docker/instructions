@@ -1,0 +1,11 @@
+Building a dockerized environment with FSL, SPM, ANTS, Nipype, Nilearn ... installed and ready to go.
+
+# building the docker image (in windows shell) - this step does not have to be done, you can pull my Docker image.
+# download the "Dockerfile" and move to dir with "Dockerfile"
+docker build --tag neuro .
+
+# running the docker image in a container (token: neuro)
+docker run -p 8888:8888 -it --rm neuro
+
+# mount the current folder (working directory in power shell, folder with your fMRI data and were the notebook will be stored) to /data folder in container
+docker run --rm -it -v "$(pwd):/data" -p 8888:8888 --name neurotest --rm neuro
