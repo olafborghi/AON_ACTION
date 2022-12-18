@@ -8,4 +8,10 @@ docker build --tag neuro .
 docker run -p 8888:8888 -it --rm neuro
 
 # mount the current folder (working directory in power shell, folder with your fMRI data and were the notebook will be stored) to /data folder in container
-docker run --rm -it -v "$(pwd):/data" -p 8888:8888 --name neurotest --rm neuro
+docker run --rm -it -v "$(pwd):/data" -p 8888:8888 --name neuro neuro
+
+# if you just want to replicate the analysis, you can also pull my docker image 
+docker pull olafborghi/neurodocker 
+
+# and then run it 
+docker run --rm -it -v "$(pwd):/data" -p 8888:8888 --name neuro olafborghi/neuro
