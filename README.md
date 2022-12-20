@@ -18,6 +18,9 @@ Future addons:
 - 07_group_level_whole_brain
 - 08_linear_mixed_models_ROI
 
+Yet to do:
+- deface the T1 images, so that the data could potentially be shared
+
 Contact: olafborghi@gmail.com
 
 
