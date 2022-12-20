@@ -6,7 +6,7 @@ I already built the Docker image, you can pull it from Docker Hub by first insta
 docker pull olafborghi/neuro
 
 # You can then run the Docker image in a container by pasting the following command:
-docker run -it -v "$(pwd):/data" -p 8888:8888 --name neuro olafborghi/neuro
+'''docker run -it -v "$(pwd):/data" -p 8888:8888 --name neuro olafborghi/neuro'''
 
 # -v "$(pwd):/data" automatically mounts your current working directory into the docker environment, this is the only "point of contact" of the container
 # with your local machine, so the data and notebooks you want to work with within the container should be stored in the working directory, 
