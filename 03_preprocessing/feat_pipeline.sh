@@ -8,7 +8,8 @@ umask u+rw,g+rw,a+rw # give group read/write permissions to all new files
 #==========================================
 
 # General path
-basedir=/mnt/d/Research/01_AON_ACTION
+# basedir=/mnt/d/Research/01_AON_ACTION # local
+basedir=/mnt/p/userdata/olafb99/shared/03_AON_ACTION # server
 
 # script directory (where this script is stored)
 scriptsdir=${basedir}/02_scripts
@@ -20,8 +21,8 @@ datadir=${basedir}/01_data
 mkdir -p ${basedir}/02_scripts/fsf_dump
 
 # create and set output folder
-mkdir -p ${basedir}/output
-outputdir=${basedir}/output
+mkdir -p ${basedir}/derivatives
+outputdir=${basedir}/derivatives
 
 #==========================================
 # Input options
@@ -34,7 +35,7 @@ Pipeline to to prepare fieldmap and anatomical images and run melodic
 
 usage: wrapper_prep_rest <subjname> 
   <subjid> : a single subject number, or a list of comma-separated numbers
-  <runlist>: comma separated list of strings describing the task and/or run number in BIDS format (e.g., AON_run-01 or rest) 
+  <runs>: comma separated list of strings describing the task and/or run number in BIDS format (e.g., AON_run-01 or rest) 
   <tasklist> : comma separated list of tasks
                -prepdata
                -createfsf
@@ -53,7 +54,7 @@ tasks=$3
 
 # create task list if set to 'all'
 if [[ "$tasks" == *"all"* ]]; 
-    then steps=(prepdata,runmelodic)
+    then steps=(prepdata,createfsf,runfeat)
          tasklist="${steps//,/ }"
     else tasklist="${tasks//,/ }"
 fi
@@ -104,13 +105,23 @@ for subjid in $subjlist ; do
             bet $subj$mag.nii.gz ${subj}${mag}_brain -R -f 0.5
             fsl_prepare_fieldmap SIEMENS $subj$phase.nii.gz ${subj}${mag}_brain $subj$fmap 2.46
 
-            echo "done betting magnitude img, fslprepare fmap"
+            echo "done betting & preparing fieldmap"
+
+            # anat has to be betted before running feat!
+            cd $anatdir
+            echo $anatdir
+
+            anat=_T1w
+
+            bet $subj$anat.nii.gz ${subj}${anat}_brain.nii.gz -B -f 0.2 -m
+
+            echo "done betting anat image"
 
           ;;
 
-          #----------------------------
-          # run individual melodics
-          #----------------------------
+          #-----------------------------------
+          # create fsf files for preprocessing
+          #-----------------------------------
 
           createfsf )
 
@@ -130,17 +141,17 @@ for subjid in $subjlist ; do
               
               # substitute information
               # outputdir
-              sed -i -e "s|OUTPUT_DIR|'"${basedir}/output/${subj}/${run}"'|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
-              # input 4D data dir
-              sed -i -e "s|DATA_DIR|'"${datadir}/${subj}/func/${subj}_task-${run}_bold.nii.gz"'|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
+              sed -i -e "s|OUTPUT_DIR|"\"${outputdir}/${subj}/${run}\""|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
               # number of time points
               sed -i -e "s|NTPTS|$ntime|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
+              # input 4D data dir
+              sed -i -e "s|DATA_DIR|"\"${funcdir}/${subj}_task-${run}_bold\""|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
               # fmap dir (has to be prepped using prepdata)
-              sed -i -e "s|FMAP_DIR|'"${datadir}/${subj}/fmap/${subj}_fmap_rads.nii.gz"'|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
+              sed -i -e "s|FMAP_DIR|"\"${fmapdir}/${subj}_fmap_rads\""|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
               # mag dir (has to be betted and unbetted file should be in same folder)
-              sed -i -e "s|MAG1_DIR|'"${datadir}/${subj}/fmap/${subj}_magnitude1_brain.nii.gz"'|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
+              sed -i -e "s|MAG1_DIR|"\"${fmapdir}/${subj}_magnitude1_brain\""|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
               # anat dir
-              sed -i -e "s|ANAT_DIR|'"${datadir}/${subj}/anat/${subj}_T1w.nii.gz"'|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
+              sed -i -e "s|ANAT_DIR|"\"${anatdir}/${subj}_T1w_brain\""|g" $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
 
               echo "done substituting sbj and run specific information in fsf file for sbj: $subj and run: $run"
 
@@ -156,15 +167,11 @@ for subjid in $subjlist ; do
 
             echo "START: feat preprocessing"
 
-            for run in $runlist; do
+            for run in $runs; do
 
               echo "working on subject: $subj and run: $run"
-			  
-			        mkdir -p $outputdir/$subj/$run
-			        echo "created outputdir for subject: $subj and run: $run"
-			  
               feat $scriptsdir/fsf_dump/feat_${subj}_${run}.fsf
-			        echo "done preprocessing run: $run of sbj: $subj"
+              echo "done preprocessing run: $run of sbj: $subj"
 
             done
 
