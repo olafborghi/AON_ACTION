@@ -18,10 +18,10 @@ To easily re-run my analyses, you can either setup an environment manually with 
 - first_level_model.ipynb Jupyter notebook with first level model setup using Nilearn
 
 Future addons:
-- 04_first_level
 - 05_group_level_whole_brain
-- 06_extract_ROI
-- 07_linear_mixed_models_ROI
+- 06_masking
+- 07_extract_ROI
+- 08_linear_mixed_models_ROI
 
 Yet to do:
 - deface the T1 images, so that the data could potentially be shared
