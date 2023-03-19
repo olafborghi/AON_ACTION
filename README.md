@@ -10,15 +10,18 @@ To easily re-run my analyses, you can either setup an environment manually with 
 - participantsfile.ipynb: Creating a BIDS-style participants.tsv and participants.yaml file containing descriptive statistics and scale scores
 - eventfiles.ipynb: Manually converting the .csv logfiles to BIDS format events.tsv files, and sorting them to the respective folders 
 
-03_preprocessing (currently under construction)
+03_preprocessing 
 - feat_pipeline.sh Bash script to prepare fieldmaps and run preprocessing for all participants and runs
 - template.fsf Template file for feat preprocessing, used to generate a FSF file for all participants and runs
 
+04_first_level_model
+- first_level_model.ipynb Jupyter notebook with first level model setup using Nilearn
+
 Future addons:
-- 04_first_level
 - 05_group_level_whole_brain
-- 06_extract_ROI
-- 07_linear_mixed_models_ROI
+- 06_masking
+- 07_extract_ROI
+- 08_linear_mixed_models_ROI
 
 Yet to do:
 - deface the T1 images, so that the data could potentially be shared
