@@ -15,12 +15,17 @@ To easily re-run my analyses, you can either setup an environment manually with 
 - template.fsf Template file for feat preprocessing, used to generate a FSF file for all participants and runs
 
 04_first_level_model
-- first_level_model.ipynb Jupyter notebook with first level model setup using Nilearn
+- AON_first_level_model.ipynb Jupyter notebook with first level model setup using Nilearn for the Action Observation task 
+- action_first_level_model.ipynb Jupyter notebook with first level model setup using Nilearn for the Action task 
+- flm_helper_functions.py A collections of functions that were used in the first level model setup
 
-Future addons:
-- 05_group_level_whole_brain
-- 06_masking_extract_ROI
-- 07_linear_mixed_models_ROI
+05_second_level_model
+
+06_masking_extract_ROI
+
+07_linear_mixed_models_ROI
+
+08_plotting
 
 Yet to do:
 - deface the T1 images, so that the data could potentially be shared
