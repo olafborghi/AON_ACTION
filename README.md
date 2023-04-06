@@ -21,11 +21,13 @@ To easily re-run my analyses, you can either setup an environment manually with 
 
 05_second_level_model
 
-06_masking_extract_ROI
+06_masking
 
-07_linear_mixed_models_ROI
+07_extract_signal
 
-08_plotting
+08_linear_mixed_models_ROI
+
+09_plotting
 
 Yet to do:
 - deface the T1 images, so that the data could potentially be shared
