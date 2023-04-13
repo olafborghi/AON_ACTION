@@ -8,14 +8,16 @@ umask u+rw,g+rw,a+rw # give group read/write permissions to all new files
 #==========================================
 
 # General path
-# basedir=/mnt/c/Users/HP/Documents/03_AON_ACTION # local
-basedir="/home/olafb99/mnt/p/userdata/olafb99/shared/03_AON_ACTION" # server
-
-# script directory (where this script is stored)
-scriptsdir="${basedir}/02_scripts"
+# basedir=/mnt/c/Users/HP/Documents/03_AON_ACTION # local laptop
+# basedir=/mnt/d/Research/01_AON_ACTION # local PC
+# serverdir="/home/olafb99/mnt/p/userdata/olafb99/shared/03_AON_ACTION" # server data
+basedir="/scratch/olafb99/01_AON_ACTION" # server 
 
 # directory where data is stored
 datadir="${basedir}/01_data"
+
+# script directory (where this script is stored)
+scriptsdir="${basedir}/02_scripts"
 
 # create folder for fsf files of each sbj
 mkdir -p "${basedir}/02_scripts/fsf_dump"
@@ -41,6 +43,7 @@ usage: wrapper_fsl_fmri <subjname>
                -createfsf
                -runfeat
                -motion
+               -applywarp
 EOF
 }
 
@@ -55,7 +58,7 @@ tasks=$3
 
 # create task list if set to 'all'
 if [[ "$tasks" == *"all"* ]]; 
-    then steps=(prepdata,createfsf,runfeat,motion)
+    then steps=(prepdata,createfsf,runfeat,motion,applywarp)
          tasklist="${steps//,/ }"
     else tasklist="${tasks//,/ }"
 fi
@@ -211,18 +214,30 @@ for subjid in $subjlist ; do
                 <img src="${fdplot}" width='100%'>
                 </body>
               </html>" >> $outhtml
-
-              # echo "Place empty file in motiondir if no fd is larger than threshold of .9 for a subj"
-              # confoundfile="${motiondir}/confound.txt"
-              # if test -f "$confoundfile"; then
-              #     echo "$FILE exists. Outliers > .9 were detected."
-              #   else
-              #     echo "No outliers > .9, creating an empty file"
-              #     touch "$confoundfile"
-              # fi
             
             done
           
+          ;;
+
+          #-------------------------------------------------------------
+          # Applywarp to transform the filtered func images to mni space
+          #-------------------------------------------------------------
+
+          applywarp ) 
+
+          # To use the FEAT output in nilearn, the filtered_func_data has to be transformed to MNI space by using applywarp with filtered_func_data as the input, 
+          # and the "standard" image from the reg sub-directory as the reference and the "example_func2standard_warp" file as the transformation (warp).  
+
+            echo "START: Transforming filtered func images to mni space"
+
+            for run in $runs; do
+
+              echo "applying warp on subject: $subj and run: $run"
+              applywarp --ref="${outputdir}/${subj}/${run}.feat/reg/standard.nii.gz" --in="${outputdir}/${subj}/${run}.feat/filtered_func_data.nii.gz" --out="${outputdir}/${subj}/${run}.feat/preprocessed_func_data_MNI.nii.gz" --warp="${outputdir}/${subj}/${run}.feat/reg/example_func2standard_warp.nii.gz"
+              echo "done applying warp on run: $run of sbj: $subj"
+
+            done
+
           ;;
 
       # end task switching
