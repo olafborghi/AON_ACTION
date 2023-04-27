@@ -1,4 +1,4 @@
-# AON_ACTION (repo currently under construction and set as private)
+# AON_ACTION (repo currently under construction)
 
 Analysis scripts for master thesis investigating the human action observation network (AON), using data from two fMRI tasks, as well as self-report measures.
 
