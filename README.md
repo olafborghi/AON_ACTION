@@ -29,9 +29,6 @@ To easily re-run my analyses, you can either setup an environment manually with 
 
 09_plotting
 
-Yet to do:
-- deface the T1 images, so that the data could potentially be shared
-
 Contact: olafborghi@gmail.com
 
 
