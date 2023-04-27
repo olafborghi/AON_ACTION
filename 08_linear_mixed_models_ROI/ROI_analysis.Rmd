@@ -1,0 +1,50 @@
+---
+title: "AON_ACTION ROI Analysis"
+author: "Olaf Borghi"
+date: '2023'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_packages, include=FALSE}
+packages <- c("rstudioapi", 
+              "tidyverse", # collection of data science libraries
+              "afex", # analysis of factorial experiments
+              "outliers", # outlier analysis
+              "ggsignif", # add significance to plot
+              "lme4", # linear mixed effect model tools
+              "lmerTest", # significance test for lmm
+              "emmeans" # for post hoc tests
+              ) 
+
+
+# install packages if not installed yet
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+# install package from github
+if (!require(remotes)) {
+    install.packages("remotes")
+}
+remotes::install_github('jorvlan/raincloudplots')
+
+library(raincloudplots)
+
+
+# load packages
+invisible(lapply(packages, library, character.only = TRUE))
+
+
+## Set working directory to active path
+
+setwd(dirname(getActiveDocumentContext()$path))
+wd <- getwd()
+
+
+```
+
