@@ -1,0 +1,12 @@
+{
+    "Name": "Action Observation and Action Task, Master Thesis",
+    "Authors": [
+        "Olaf Borghi",
+        "Magdalena Boch"
+    ],
+    "Funding": [
+        "This project was supported by the Austrian Science Fund (FWF): W1262-B29 and by the Vienna Science and Technology Fund (WWTF), the City of Vienna and ithuba Capital AG through project CS18-012 , and the Messerli Foundation (S\u00f6renberg, Switzerland). The funders had no role in study design, data collection and analysis, decision to publish, or preparation of the manuscript."
+    ],
+    "BIDSVersion": "1.2.1",
+    "Date": "2021"
+}

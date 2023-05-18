@@ -1,0 +1,119 @@
+{
+    "age": {
+        "Description": "Age of the participant",
+        "Units": "years"
+    },
+    "sex": {
+        "Description": "Sex of the participant",
+        "Levels": {
+            "0": "Female",
+            "1": "Male",
+            "2": "Other"
+        }
+    },
+    "dog_expert": {
+        "Description": "A person that either lived in a household with dogs, owned one or several dogs, or has other significant expertise (e.g., from training or working with dogs)",
+        "Levels": {
+            "0": "Non-expert",
+            "1": "Expert"
+        }
+    },
+    "handedness": {
+        "Description": "Dominant hand of the participant",
+        "Levels": {
+            "R": "right-handed"
+        }
+    },
+    "perspective_taking": {
+        "Description": "the ability to interpret situations from the perspective of others",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "online_simulation": {
+        "Description": "the ability to put oneself in another person\u2019s place to understand and anticipate their feelings",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "emotion_contagion": {
+        "Description": "the tendency to automatically take over others\u2019 emotions",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "proximal_responsivity": {
+        "Description": "the affective responsivity when observing others\u2019 emotions in a more close social context",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "peripheral_responsivity": {
+        "Description": "the affective responsivity when observing others\u2019 emotions in a more detached context, e.g., when watching characters in a movie",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "cognitive_empathy": {
+        "Description": "the ability to construct a working model of the emotional states of others",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale from 1 to 4"
+    },
+    "affective_empathy": {
+        "Description": "the ability to be sensitive to and vicariously experience the feelings of others",
+        "Questionnaire": "Questionnaire of Cognitive and Affective Empathy (Reniers et al., 2016)",
+        "Units": "arbitrary interval scale ranging from 1 to 4"
+    },
+    "affection": {
+        "Description": "How much do you like dogs?",
+        "Levels": {
+            "1": "Not at all",
+            "2": "A little",
+            "3": "Some",
+            "4": "Very much",
+            "5": "Extremely much"
+        }
+    },
+    "knowledge": {
+        "Description": "How much do you know about dog behaviour?",
+        "Levels": {
+            "1": "Not at all",
+            "2": "A little",
+            "3": "Some",
+            "4": "Very much",
+            "5": "Extremely much"
+        }
+    },
+    "shared_household": {
+        "Description": "Have you ever shared or currently share a household with at least one dog?",
+        "Levels": {
+            "1": "yes",
+            "0": "no"
+        }
+    },
+    "shared_household_years": {
+        "Description": "Time spent living with at least one dog in same household",
+        "Units": "years"
+    },
+    "ownership": {
+        "Description": "Do you currently own a dog?",
+        "Levels": {
+            "1": "yes",
+            "0": "no"
+        }
+    },
+    "ownership_count": {
+        "Description": "How many dogs do you currently own?",
+        "Units": "count"
+    },
+    "expertise": {
+        "Description": "Do you have any experience in dog training or hobbies involving working with dogs (e.g. agility?)",
+        "Levels": {
+            "1": "yes",
+            "0": "no"
+        }
+    },
+    "expertise_years": {
+        "Description": "If expertise was answered with yes: For how many years?",
+        "Unit": "years"
+    },
+    "expertise_open": {
+        "Description": "if expertise was answered with yes: What kind of experience do you have?",
+        "Unit": "string"
+    }
+}
