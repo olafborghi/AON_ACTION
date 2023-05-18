@@ -3,48 +3,535 @@ title: "AON_ACTION ROI Analysis"
 author: "Olaf Borghi"
 date: '2023'
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-```{r load_packages, include=FALSE}
+# install and load packages
 packages <- c("rstudioapi", 
               "tidyverse", # collection of data science libraries
-              "afex", # analysis of factorial experiments
-              "outliers", # outlier analysis
+              "afex", # analysis of factorial experiments / mixed models
+              "qqconf", # needed for ggResidpanel
+              "ggResidpanel", # assumption checks
+              "xtable", # tables and corr analysis
               "ggsignif", # add significance to plot
-              "lme4", # linear mixed effect model tools
-              "lmerTest", # significance test for lmm
-              "emmeans" # for post hoc tests
+              "gghalves", # plotting
+              "ggpubr", # plotting
+              "svglite", # save figs as svg
+              "patchwork", # plot spacer
+              "emmeans", # for post hoc tests
+              "effsize", # additional effect sizes
+              "flextable", # make nice tables
+              "broom.mixed" # needed for flextables of mixed models
               ) 
 
-
-# install packages if not installed yet
 installed_packages <- packages %in% rownames(installed.packages())
 if (any(installed_packages == FALSE)) {
   install.packages(packages[!installed_packages])
 }
 
-# install package from github
-if (!require(remotes)) {
-    install.packages("remotes")
-}
-remotes::install_github('jorvlan/raincloudplots')
-
-library(raincloudplots)
-
-
-# load packages
 invisible(lapply(packages, library, character.only = TRUE))
 
+# packages from github
+devtools::install_github("aljrico/gameofthrones")
+devtools::install_github('jorvlan/raincloudplots')
+library(gameofthrones)
+library(raincloudplots)
 
-## Set working directory to active path
-
+# Set working directory to active path
 setwd(dirname(getActiveDocumentContext()$path))
 wd <- getwd()
 
+# load flat violin plot script
+source(paste0(wd, "/raincloud_functions.R"))
+```
+
+```{r session info, echo=FALSE}
+sessionInfo()
+```
+
+
+# Master Thesis: Modulation of the Action Observation Network
+
+# Investigating Action, Agent and Observer Factors in an fMRI study
+
+**Author:** Olaf Borghi
+
+Action factor: Transitive vs. intransitive Agent factor: Human vs. dog
+Observer factor: Non-dog-expert vs dog_expert
+
+```{r load data, echo=FALSE}
+data <- read.csv(paste0(getwd(), "/ROI_data.csv"), stringsAsFactors = TRUE) 
+
+data$sex <- as.factor(data$sex)
+data$observer_factor <- as.factor(data$observer_factor)
+
+levels(data$sex)[levels(data$sex) == "0"] <- "woman"
+levels(data$sex)[levels(data$sex) == "1"] <- "man"
+levels(data$observer_factor)[levels(data$observer_factor) == "0"] <- "non-expert"
+levels(data$observer_factor)[levels(data$observer_factor) == "1"] <- "expert"
+
+head(data)
+```
+
+## Descriptives
+
+```{r descritive_summarization_1, echo=FALSE}
+data %>%
+  dplyr::group_by(action_factor, agent_factor, observer_factor) %>%
+  dplyr::summarize(mean_activation = mean(activation))
+```
+
+## Main linear mixed-effect regression
+
+I will now use a linear mixed-effect regression to investigate differences and interactions of activation levels between transitive and intransitive actions (action_factor), performed by either dog or human agents (agent_factor), and between participants with dog expertise or no dog expertise (observer_factor). I included a random intercept for each participant (1 | participant) and anatomical region (1 | region).  
+
+```{r linear mixed effect regression, include=TRUE}
+contrasts(data$action_factor) = c(-0.5, 0.5)
+contrasts(data$agent_factor) = c(-0.5, 0.5)
+contrasts(data$observer_factor) = c(-0.5, 0.5)
+colnames(attr(data$action_factor, "contrasts")) = "t>i"
+colnames(attr(data$agent_factor, "contrasts")) = "h>d"
+colnames(attr(data$observer_factor, "contrasts")) = "e>ne"
+
+m1 <- lmer(activation ~ action_factor *  agent_factor * observer_factor + (1 | participant_id) + (1 | region), data, REML=TRUE)
+summary(m1)
+```
+
+```{r m1 lmer flextable, include=FALSE}
+m1_table <- as_flextable(m1)
+save_as_docx(m1_table, path=paste0(wd, "/m1_table.docx" ))
+```
+
+## Post hoc tests
+
+```{r post_hoc_setup, include=FALSE}
+options(max.print=999999) # to increase the number of parameters that are printed
+#emm_options(lmer.df = "asymptotic")
+emm_options(disable = TRUE)
+```
+
+Set up reference grid
+
+```{r reference grid interactional, include=TRUE}
+em1 <- emmeans(m1, ~ agent_factor*action_factor*observer_factor)
+em1
+```
+
+Test all pairwise comparisons on interactional reference grid:
+
+```{r pairwise comparisons interactional, echo=FALSE}
+em1_pairs = pairs(em1, adjust = "fdr")
+em1_pairs 
+```
+
+```{r m1 post hoc table, include=FALSE}
+em1_pairs_df <- as.data.frame(em1_pairs)
+write.csv(em1_pairs_df, paste0(wd, "/m1_pairwise_comparisons_FDR.csv"), 
+          row.names = FALSE)
+```
+
+Comparison of main effect of agents across conditions
+
+```{r reference grid main effect agent, include=TRUE}
+em2 <- emmeans(m1, ~ agent_factor)
+em2
+```
+
+Test all pairwise comparisons on main effect reference grid:
+
+```{r pairwise_comparisons, include=TRUE}
+em2_pairs = pairs(em2, adjust = "fdr")
+em2_pairs 
+```
+
+### Effect sizes
+
+```{r effect sizes interactional, echo=FALSE}
+m1_effsize <- eff_size(em1, sigma=sigma(m1), edf=55.7)
+m1_effsize
+```
+
+```{r m1 effect sizes table, include=FALSE}
+em1_effsize_df <- as.data.frame(m1_effsize)
+write.csv(em1_effsize_df, paste0(wd, "/m1_pairwise_effsize.csv"), 
+          row.names = FALSE)
+```
+
+```{r effect size main effect agent, echo=FALSE}
+eff_size(em2, sigma=sigma(m1), edf=1071)
+```
+
+## Follow-up Investigation: Effects within Brain Regions
+
+```{r follow up lmms, echo=FALSE}
+# Contrast effects in each ROI, FDR-corrected
+model.dfs <- list()
+index = 1
+
+# run a regression model for each ROI & save the results as a df
+for (roi in unique(data$region)) {
+  data.roi = data %>% filter(region==roi)
+  model = lmer(activation ~ action_factor * agent_factor * observer_factor + (1|participant_id), 
+               data=data.roi, REML=TRUE)
+  model.df = data.frame(c('Intercept', 'Action (transitive > intransitive)', 'Agent (human > dog)', 
+                          'Observer (expert > non-expert)', 'Action : Observer', 'Action : Agent',
+                          'Agent : Observer', 'Action : Agent : Observer'),
+                        summary(model)$coefficients[,'Estimate'],
+                        summary(model)$coefficients[,'Pr(>|t|)']) %>% 
+    mutate(region=roi)
+  names(model.df) = c('Regression Term', 'Beta', 'p.value', 'ROI')
+  model.df = model.df[,c(4,1,2,3)] %>%
+    mutate(Beta = round(Beta, 2))
+  model.dfs[[index]] <- model.df
+  index = index+1
+}
+
+stats_df = do.call("rbind", model.dfs)
+# FDR correction
+stats_df = stats_df %>%
+  group_by(`Regression Term`) %>%
+  mutate(p.value.FDR = p.adjust(p.value, method="fdr")) %>%
+  mutate(p.value.FDR = ifelse((p.value.FDR>=0.001), as.character(round(p.value.FDR, 3)),
+                          formatC(p.value.FDR, format = "e", digits = 2)))
+
+stats_df$p.value = NULL
+
+write.table(stats_df, file = "within_ROI_stats.csv", sep = ",", quote = FALSE, row.names = F)
+```
+
+## Plots 
+
+```{r split data for plots, echo=FALSE}
+
+dat_human_agent = data %>%
+  filter(agent_factor == "human")
+
+dat_dog_agent = data %>%
+  filter(agent_factor == "dog")
+
+dat_dog_agent_expert = dat_dog_agent %>%
+  filter(observer_factor == "expert")
+dat_dog_agent_non_expert = dat_dog_agent %>%
+  filter(observer_factor == "non-expert")
+```
+
+```{r define functions for plots, echo=FALSE}
+
+ROI_barplot <- function(data) {
+  p = ggplot(data, aes(x = action_factor, y=activation)) +
+  stat_summary(aes(fill = action_factor),
+               fun.data = mean_se, geom = "col", color ="black", position = position_dodge(1)) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", size=0.9, width=0.15, position = position_dodge(1)) +
+  geom_jitter(aes(colour = "black"),
+              position = position_jitterdodge(dodge.width = 1, jitter.width = .2),
+              size = 1.1, alpha = 0.2, show.legend=FALSE) +
+  geom_flat_violin(aes(x= 1.5, y=activation, fill = action_factor),
+                   position = position_nudge(x = 1, y = 0),
+                   alpha = 0.5, adjust = 2, trim = FALSE, width = 1, lwd = 0.3, 
+                   color = "black") +
+  scale_color_manual(values = c("#292929DD")) +
+  labs(x = 'Action Factor', y = "BOLD response")+ 
+  theme_classic()+ 
+  geom_hline(yintercept=0, size=0.5)+
+  scale_y_continuous(breaks=c(-4,-2,0,2,4,6,8), limits=c(-5,9)) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_text(size=12, face='bold', color="black"),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_blank(),
+        strip.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.text.x = element_text(size = 12, face='bold', color="black"),
+        legend.title= element_blank(),
+        legend.position = "none") 
+   return(p)
+  }
+```
+
+```{r plot across experts and non experts, echo=FALSE}
+
+human_agents <- ROI_barplot(dat_human_agent) + ggtitle ("Human Agent") + 
+   scale_fill_got_d(option = "Daenerys", begin=0, end = 1, direction=1) 
+dog_agents <- ROI_barplot(dat_dog_agent) + ggtitle ("Dog Agent") + 
+   scale_fill_got_d(option = "Tully", begin=0.2, end = 0.7, direction=1)
+plot_spacer() / (human_agents + plot_spacer() + dog_agents + plot_layout(widths=c(5,0.05,5))) + plot_layout(heights=c(.1,2))
 
 ```
+
+```{r plot of actions performed by dogs by experts, echo=FALSE}
+
+dog_agents_experts <- ROI_barplot(dat_dog_agent_expert) + ggtitle ("Dog Experts") +
+  scale_fill_got_d(option = "Tully", begin=0.2, end = 0.7, direction=1) +
+  geom_signif(y_position = c(5.8), xmin = c(1), 
+              xmax = c(2), annotation = c("**"),
+              tip_length = 0.04)
+
+dog_agents_non_experts <- ROI_barplot(dat_dog_agent_non_expert) + ggtitle ("Non-Dog Experts") +
+  scale_fill_got_d(option = "Tully", begin=0.2, end = 0.7, direction=1)
+
+plot_spacer() / (dog_agents_experts + plot_spacer() + dog_agents_non_experts + plot_layout(widths=c(5,0.05,5))) + plot_layout(heights=c(.1,2))
+
+```
+
+
+
+```{r}
+
+data_fig <- data
+
+data_fig <- data_fig %>%
+  mutate(x_axis = case_when(
+    action_factor == "transitive" & agent_factor == "human" & observer_factor == "non-expert" ~ 1,
+    action_factor == "transitive" & agent_factor == "human" & observer_factor == "expert" ~ 2,
+    action_factor == "intransitive" & agent_factor == "human" & observer_factor == "non-expert" ~ 3,
+    action_factor == "intransitive" & agent_factor == "human" & observer_factor == "expert" ~ 4,
+    action_factor == "transitive" & agent_factor == "dog" & observer_factor == "non-expert" ~ 5,
+    action_factor == "transitive" & agent_factor == "dog" & observer_factor == "expert" ~ 6,
+    action_factor == "intransitive" & agent_factor == "dog" & observer_factor == "non-expert" ~ 7,
+    action_factor == "intransitive" & agent_factor == "dog" & observer_factor == "expert" ~ 8,
+  ))
+
+jit_distance = .08
+jit_seed = 321
+set.seed(jit_seed)
+data_fig$jit <- jitter(data_fig$x_axis, amount = jit_distance)
+
+```
+
+### 2x2 Plot Transitive & Intransitive Human Actions x Expertise
+
+```{r}
+colors = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+fills = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+line_color = 'gray'
+line_alpha = .3
+size = 1.5
+alpha = .6
+
+# human actions comparison expert-nonexpert
+
+fig2 <- ggplot(data = data_fig) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="1"), 
+             aes(x = jit, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.5), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="2"), 
+             aes(x = jit, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -1), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="3"), 
+             aes(x = jit, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.5), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="4"), 
+             aes(x = jit, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.9), size = size, alpha = .2) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="1"), 
+                    aes(x=x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.25),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="2"), 
+                    aes(x=x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -.75),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="3"), 
+                    aes(x=x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.25),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="4"), 
+                    aes(x=x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.75),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="1"),
+                   aes(x = x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -1),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="2"),
+                   aes(x = x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -2),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="3"),
+                   aes(x = x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = 1),
+                   side = "r", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="4"),
+                   aes(x = x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = 0),
+                   side = "r", alpha = alpha) +
+  scale_x_continuous(breaks=c(1,3), labels=c("transitive","intransitive"), limits=c(-1, 5)) +
+  xlab("Time") + 
+  ylab("Score") +
+  theme_classic() 
+fig2
+```
+
+### 2x2 Plot Transitive & Intransitive Dog Actions x Expertise
+
+```{r}
+colors = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+fills = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+line_color = 'gray'
+line_alpha = .3
+size = 1.5
+alpha = .6
+
+# dog actions by non-expert and experts
+
+fig3 <- ggplot(data = data_fig) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="5"), 
+             aes(x = jit, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.5), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="6"), 
+             aes(x = jit, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -1), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="7"), 
+             aes(x = jit, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.5), size = size, alpha = .2) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="8"), 
+             aes(x = jit, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.9), size = size, alpha = .2) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="5"), 
+                    aes(x=x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.25),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="6"), 
+                    aes(x=x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -.75),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="7"), 
+                    aes(x=x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.25),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="8"), 
+                    aes(x=x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.75),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="5"),
+                   aes(x = x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -1),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="6"),
+                   aes(x = x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -2),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="7"),
+                   aes(x = x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = 1),
+                   side = "r", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="8"),
+                   aes(x = x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = 0),
+                   side = "r", alpha = alpha) +
+  scale_x_continuous(breaks=c(5,7), labels=c("transitive","intransitive"), limits=c(3, 9)) +
+  xlab("Time") + 
+  ylab("Score") +
+  theme_classic() 
+fig3
+```
+
+### 2x2x2 Plot Action (x-axis) * Agent (panel) * Observer (color)
+
+```{r 2x2x2 Plot, echo=FALSE}
+
+colors = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange', 'dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+fills = (c('dodgerblue', 'darkorange', 'dodgerblue', 'darkorange', 'dodgerblue', 'darkorange', 'dodgerblue', 'darkorange'))
+line_color = 'gray'
+line_alpha = .3
+p_alpha = .3
+size = 1.5
+alpha = .6
+
+
+fig <- ggplot(data = data_fig) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="1"), 
+             aes(x = jit, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.1), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="2"), 
+             aes(x = jit, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -.5), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="3"), 
+             aes(x = jit, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.6), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="4"), 
+             aes(x = jit, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -1), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="5"), 
+             aes(x = jit, y = activation), color = colors[5], fill = fills[5], position = position_nudge(x = .9), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="6"), 
+             aes(x = jit, y = activation), color = colors[6], fill = fills[6], position = position_nudge(x = .5), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="7"), 
+             aes(x = jit, y = activation), color = colors[7], fill = fills[7], position = position_nudge(x = .4), size = size, alpha = p_alpha) +
+  geom_point(data = data_fig %>% dplyr::filter(x_axis =="8"), 
+             aes(x = jit, y = activation), color = colors[8], fill = fills[8], position = position_nudge(x = .1), size = size, alpha = p_alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="1"), 
+                    aes(x=x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.3),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="2"), 
+                    aes(x=x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -.7),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="3"), 
+                    aes(x=x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = -.3),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="4"), 
+                    aes(x=x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.7),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="5"), 
+                    aes(x=x_axis, y = activation), color = colors[5], fill = fills[5], position = position_nudge(x = .7),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="6"), 
+                    aes(x=x_axis, y = activation), color = colors[6], fill = fills[6], position = position_nudge(x = .3),
+                    side = "l",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="7"), 
+                    aes(x=x_axis, y = activation), color = colors[7], fill = fills[7], position = position_nudge(x = .7),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_boxplot(data = data_fig %>% dplyr::filter(x_axis=="8"), 
+                    aes(x=x_axis, y = activation), color = colors[8], fill = fills[8], position = position_nudge(x = .3),
+                    side = "r",outlier.shape = NA, center = TRUE, errorbar.draw = FALSE, width = .2, alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="1"),
+                   aes(x = x_axis, y = activation), color = colors[1], fill = fills[1], position = position_nudge(x = -.5),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="2"),
+                   aes(x = x_axis, y = activation), color = colors[2], fill = fills[2], position = position_nudge(x = -1.5),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="3"),
+                   aes(x = x_axis, y = activation), color = colors[3], fill = fills[3], position = position_nudge(x = .5),
+                   side = "r", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="4"),
+                   aes(x = x_axis, y = activation), color = colors[4], fill = fills[4], position = position_nudge(x = -.5),
+                   side = "r", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="5"),
+                   aes(x = x_axis, y = activation), color = colors[5], fill = fills[5], position = position_nudge(x = .5),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="6"),
+                   aes(x = x_axis, y = activation), color = colors[6], fill = fills[6], position = position_nudge(x = -.5),
+                   side = "l", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="7"),
+                   aes(x = x_axis, y = activation), color = colors[7], fill = fills[7], position = position_nudge(x = 1.5),
+                   side = "r", alpha = alpha) +
+  geom_half_violin(data = data_fig %>% dplyr::filter(x_axis=="8"),
+                   aes(x = x_axis, y = activation), color = colors[8], fill = fills[8], position = position_nudge(x = .5),
+                   side = "r", alpha = alpha) +
+  geom_segment(aes(x = 4.5, y = -2, xend = 4.5, yend = 6)) +
+  geom_signif(data = data_fig, aes(y_position = c(7), xmin = c(2), xmax = c(7), annotations = c("***")), tip_length = 0, manual = TRUE) +
+  geom_signif(data = data_fig, aes(y_position = c(6), xmin = c(6.3), xmax = c(8.3), annotations = c("**")), tip_length = 0, manual = TRUE) +
+  scale_x_continuous(breaks=c(1,3,6,8), labels=c("transitive", "intransitive", "transitive", "intransitive"), limits=c(0, 10)) +
+  ylab("BOLD Activation") + 
+  theme_classic() +
+  theme(axis.line = element_line(colour = 'black'),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.y =element_text(size=12, face='bold', color="black"),
+        strip.text.x = element_text(size = 12, face='bold', color="black"),
+        legend.title= element_blank(),
+        legend.position = "none") 
+fig
+
+ggsave(file="2x2x2_fig.svg", plot=fig, width=12, height=8)
+```
+
+### Afex interaction plot
+
+```{r interaction_plot, echo=FALSE}
+afex_plot(m1, "action_factor", "observer_factor", "agent_factor") +
+  theme_bw() +
+  labs(title="Interaction Plot") +
+  labs(x = "Action factor", y="Mean BOLD Activation Level") 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_text(size=12, face='bold', color="black"),
+        axis.ticks.x=element_text(size=12, face='bold', color="black"),
+        axis.title.y = element_text(size=12, face='bold', color="black"),
+        strip.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+
+```
+
+### Assumption check plot
+
+For this, I have to refit the same model with lmer, as afex objects cannot be used as
+input for resid_panel. 
+
+```{r assumption checks, echo=FALSE}
+resid_panel(m1, plots = "all")
+```
+
+
+
+
+
 

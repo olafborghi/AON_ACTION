@@ -33,7 +33,9 @@ To easily re-run my analyses, you can either setup an environment manually with 
 - extract_signal.ipynb: Signal extraction from first level contrasts of the action observation task compared with baseline from the ROIs and creation of a data frame used in subsequent ROI analyses
 
 08_ROI_analysis
-- R code for linear mixed effect regressions to investigate main effects and interactions of the different factors
+- ROI_analysis.md: R code for linear mixed effect regressions and figures to investigate main effects and interactions of the different factors 
+- ROI_analysis.html: Analysis code and output as html file
+- ROI_data.csv: CSV file containing the extracted mean signal used in the ROI analysis (note: use read_csv2 to replicate the analyses with this file instead of read_csv)
 
 09_plotting
 - Code for surface, glass brain and other plots visualizing the fMRI results
