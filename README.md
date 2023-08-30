@@ -1,6 +1,6 @@
 # AON_ACTION Data analysis
 
-Analysis scripts for master thesis investigating the human action observation network (AON), using data from two fMRI tasks, as well as self-report measures.
+Analysis scripts for study investigating the human action observation network (AON), using data from two fMRI tasks, as well as self-report measures.
 
 01_setup
 To easily re-run my analyses, you can either setup an environment manually with FSL 5.0, Nilearn, Nipype ... or pull my Docker image (i.e., a conteinerized virtual linux environment, in which I already installed all dependencies, including FSL 5.0, as well as many relevant Python packages). Instructions can be found in the Docker folder of the repo, and more general information on https://docs.docker.com/get-started/. Else, you can setup FSL 5.0 on your local computer and use the conda environment "neuroenv.yml". 
