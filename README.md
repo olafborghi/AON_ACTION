@@ -3,7 +3,7 @@
 Analysis scripts for study investigating the human action observation network (AON), using data from two fMRI tasks, as well as self-report measures.
 
 01_setup
-To easily re-run my analyses, you can either setup an environment manually with FSL 5.0, Nilearn, Nipype ... or pull my Docker image (i.e., a conteinerized virtual linux environment, in which I already installed all dependencies, including FSL 5.0, as well as many relevant Python packages). Instructions can be found in the Docker folder of the repo, and more general information on https://docs.docker.com/get-started/. Else, you can setup FSL 5.0 on your local computer and use the conda environment "neuroenv.yml". 
+To easily re-run my analyses, you should setup an environment with FSL 5.0, Nilearn, Nipype installed. I initially also created a Docker image (i.e., a conteinerized virtual linux environment, in which I already installed all dependencies, including FSL 5.0, as well as many relevant Python packages), but note that I did not run the analyses in this environment. Instructions can be found in the Docker folder of the repo, and more general information on https://docs.docker.com/get-started/. 
 
 02_data_preparation
 - dcm2BIDS.ipynb: Using dcm2bids to convert raw dicom data to BIDS format
@@ -27,14 +27,14 @@ To easily re-run my analyses, you can either setup an environment manually with 
 - second_level_model.ipynb: Second level model code for both the action observation and action execution analysis on a whole brain level
 
 06_masking
-- masking.ipynb: Code for the creation of individual mask for each region of interest (ROI)
+- aon_masking.ipynb: Code for the creation of individual masks for action processing regions of interest 
+- fp_masking.ipynb: Code for the creation of individual massks for feature processing regions of interest 
 
 07_extract_signal
 - extract_signal.ipynb: Signal extraction from first level contrasts of the action observation task compared with baseline from the ROIs and creation of a data frame used in subsequent ROI analyses
 
 08_ROI_analysis
-- ROI_analysis.md: R code for linear mixed effect regressions and figures to investigate main effects and interactions of the different factors 
-- ROI_analysis.html: Analysis code and output as html file
+- AON_ROI_analysis: R code for linear mixed effect regressions and figures to investigate main effects and interactions of the different factors 
 - ROI_data.csv: CSV file containing the extracted mean signal used in the ROI analysis (note: use read_csv2 to replicate the analyses with this file instead of read_csv)
 
 09_plotting
@@ -43,6 +43,6 @@ To easily re-run my analyses, you can either setup an environment manually with 
 10_cluster_info
 - cluster_info.ipynb: Code to generate the Supplementary Tables on peak activation coordinates from the whole brain contrasts
 
-Feel free to re-use my code, and if you find any mistakes (and you will find them), or have any questions, please contact me!
+Feel free to re-use my code, and if you find any mistakes (and I am sure you will find some), or have any questions, please contact me!
 
 Contact: olafborghi@gmail.com
